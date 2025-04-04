@@ -27,17 +27,17 @@ __global__ void generate_perlin_noise(float *noise, float *gradients, int scale)
   const int y = threadIdx.y;
   int idx = threadIdx.x + threadIdx.y*32;
   printf("I am %d.%d\\n", threadIdx.x, threadIdx.y);
-  
+
   int cell_x = x / scale;
   int cell_y = y / scale;
 
-  float cell_offset_x = x / scale - cell_x;
-  float cell_offset_y = y / scale - cell_y;
+  float cell_offset_x = (float) x / scale - cell_x;
+  float cell_offset_y = (float) y / scale - cell_y;
 
-  float dot_product_tl = cell_offset_x*gradients[cell_x*10+cell_y*2] + cell_offset_y*gradients[cell_x*10+cell_y*2+1];
-  float dot_product_tr = (cell_offset_x-1)*gradients[(cell_x+1)*10+cell_y*2] + cell_offset_y*gradients[(cell_x+1)*10+cell_y*2+1];
-  float dot_product_bl = cell_offset_x*gradients[cell_x*10+(cell_y+1)*2] + (cell_offset_y-1)*gradients[cell_x*10+(cell_y+1)*2+1];
-  float dot_product_br = (cell_offset_x-1)*gradients[(cell_x+1)*10][(cell_y+1)*2] + (cell_offset_y-1)*gradients[(cell_x+1)*10][(cell_y+1)*2+1];
+  float dot_product_tl = cell_offset_x * gradients[cell_x*10+cell_y*2] + cell_offset_y * gradients[cell_x*10+cell_y*2+1];
+  float dot_product_tr = (cell_offset_x-1) * gradients[(cell_x+1)*10+cell_y*2] + cell_offset_y * gradients[(cell_x+1)*10+cell_y*2+1];
+  float dot_product_bl = cell_offset_x * gradients[cell_x*10+(cell_y+1)*2] + (cell_offset_y-1) * gradients[cell_x*10+(cell_y+1)*2+1];
+  float dot_product_br = (cell_offset_x-1) * gradients[(cell_x+1)*10+(cell_y+1)*2] + (cell_offset_y-1) * gradients[(cell_x+1)*10+(cell_y+1)*2+1];
 
   float weight_x = smoothstep(cell_offset_x);
   float weight_y = smoothstep(cell_offset_y);
@@ -46,7 +46,7 @@ __global__ void generate_perlin_noise(float *noise, float *gradients, int scale)
   float interpolated_value = lerp(interpolated_top, interpolated_bottom, weight_y);
 
   noise[idx] = interpolated_value;
-  
+
 }
 """)
 
@@ -63,19 +63,18 @@ b_dev = cuda.mem_alloc(gradients.nbytes)
 
 cuda.memcpy_htod(a_dev, a)
 cuda.memcpy_htod(b_dev, gradients)
-print(gradients)
 
 func = mod.get_function("generate_perlin_noise")
 func(a_dev, b_dev, SCALE, block=(HEIGHT,WIDTH,1))
+cuda.Context.synchronize() # May not be necessary?
 
 a_result = np.empty_like(a)
 cuda.memcpy_dtoh(a_result, a_dev)
 # print ("Input Matrix")
 # print (a)
-# print ("Output Matrix")
-# print(a_result)
+print ("Output Matrix")
+print(a_result)
 
 # Normalize
 noise = (a_result - np.min(a_result)) / (np.max(a_result) - np.min(a_result))
-
 plot_noise(noise, "Perlin noise example", cmap_given = "twilight")
