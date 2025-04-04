@@ -82,6 +82,7 @@ def generate_perlin_noise(width, height, scale, cpu_count=3):
     Returns:
     - noise (n-dimensional array): Perlin noise array of shape (height, width).
     """
+    np.random.seed(0)
     # Empty noise array
     noise = np.zeros((height, width))
 
