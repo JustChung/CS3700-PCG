@@ -52,7 +52,7 @@ class AdjustablePerlin:
         self.dimension_input = IntVar()
         self.dimension_input.set(512)
         self.dimension_input.trace_add("write", self.update_noise)
-        dimension_slider = ttk.Scale(dim_slider_frame, from_=512, to=2048, orient=HORIZONTAL, variable=self.dimension_input)
+        dimension_slider = ttk.Scale(dim_slider_frame, from_=512, to=3333, orient=HORIZONTAL, variable=self.dimension_input)
       
         # Make Dimension Integer Text
         self.dimension_str = StringVar()

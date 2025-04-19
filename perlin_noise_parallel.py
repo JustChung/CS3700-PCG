@@ -4,6 +4,7 @@
 
 import numpy as np
 from multiprocessing import Pool
+import multiprocessing.shared_memory
 
 def plot_noise(noise, plt_title, cmap_given="gray"):
     # Import matplotlib left here, as plotting not necessary to noise gen
@@ -18,7 +19,7 @@ def smoothstep(t):
 def lerp(a, b, t):
     return a + t * (b - a)
 
-def compute_row(y, width, scale, gradients):
+def compute_row(y, width, height, scale, gradients, shared_memory_name, shared_memory_dtype):
     """
     Compute row of Perlin noise, using global gradients
 
@@ -64,10 +65,13 @@ def compute_row(y, width, scale, gradients):
     interp_top = lerp(dot_tl, dot_tr, weight_x)
     interp_bottom = lerp(dot_bl, dot_br, weight_x)
 
-    # Interpolate vertically between the top and bottom interpolations
-    row = lerp(interp_top, interp_bottom, weight_y)
+    # Get shared memory
+    shared_memory = multiprocessing.shared_memory.SharedMemory(name=shared_memory_name)
+    shared_array = np.ndarray((height, width), dtype=shared_memory_dtype, buffer=shared_memory.buf)
 
-    return row
+    # Interpolate vertically between the top and bottom interpolations    
+    shared_array[y,:] = lerp(interp_top, interp_bottom, weight_y)
+    shared_memory.close()
 
 def generate_perlin_noise(width, height, scale, cpu_count=3):
     """
@@ -82,27 +86,33 @@ def generate_perlin_noise(width, height, scale, cpu_count=3):
     Returns:
     - noise (n-dimensional array): Perlin noise array of shape (height, width).
     """
+    # Must be 0 to keep each run identical
     np.random.seed(0)
-    # Empty noise array
+
+    # Empty noise array for shared memory array
     noise = np.zeros((height, width))
+    shared_mem = multiprocessing.shared_memory.SharedMemory(create=True, size=noise.nbytes)
+    shared_array = np.ndarray(noise.shape, dtype=noise.dtype, buffer=shared_mem.buf)
 
     # Generate random gradients with dimensions based on the grid
     gradients = np.random.randn(height // scale + 2, width // scale + 2, 2)
 
-    # Prepare arguments for each row, where y is row number
-    args = [(y, width, scale, gradients) for y in range(height)]
+    # Prepare arguments for each row, where y is row number, provide shared memory noise to each process
+    args = [(y, width, height, scale, gradients, shared_mem.name, noise.dtype) for y in range(height)]
 
     # Use multiprocessing Pool to compute each row in parallel
-    with Pool(processes=cpu_count) as pool:
-        results = pool.starmap(compute_row, args)  # Starmap uses arg tuple as multiple arguments
-
-    # Assemble the full noise array from the computed rows
-    for i, row in enumerate(results):
-        noise[i] = row
+    Pool(processes=cpu_count).starmap(compute_row, args)  # Starmap uses arg tuple as multiple arguments
 
     # Normalize the noise to the range [0, 1]
-    noise = (noise - np.min(noise)) / (np.max(noise) - np.min(noise))
-    return noise
+    array_min = np.min(shared_array)
+    divide_by = np.max(shared_array) - array_min
+    shared_array = (shared_array - array_min) # Set min to 0
+    shared_array /= divide_by # Set new max to 1 normalizing in between
+    
+    # Close memory
+    shared_mem.close()
+    shared_mem.unlink()    
+    return shared_array
 
 if __name__ == '__main__':
     # Demo Usage
@@ -114,7 +124,7 @@ if __name__ == '__main__':
 
     # Benchmark parallelization of noise gen
     import time
-    for cpu in range(1, 9):  # Pool count of 1 to 4 processes
+    for cpu in range(1, 17):  # Pool count of 1 to 4 processes
         start = time.time()
         # Generate Perlin noise with cpu count pool
         noise = generate_perlin_noise(width, height, scale, cpu)
