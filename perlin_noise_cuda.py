@@ -1,5 +1,4 @@
 # Source: https://github.com/Vitosh/Python_personal/blob/master/JupyterNotebook/Perlin-Noise/Perlin-Noise.ipynb
-# Parallel not working
 
 import math
 import random
@@ -70,11 +69,9 @@ cuda.Context.synchronize() # May not be necessary?
 
 a_result = np.empty_like(a)
 cuda.memcpy_dtoh(a_result, a_dev)
-# print ("Input Matrix")
-# print (a)
 print ("Output Matrix")
 print(a_result)
 
 # Normalize
 noise = (a_result - np.min(a_result)) / (np.max(a_result) - np.min(a_result))
-plot_noise(noise, "Perlin noise example", cmap_given = "twilight")
+plot_noise(noise, "Perlin noise example", cmap_given = "terrain")
