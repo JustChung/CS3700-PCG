@@ -90,13 +90,14 @@ def lerp(a, b, t):
     """
     return a + t * (b - a)
 
-# Set the width, height, and scale parameters
-width = 256
-height = 256
-scale = 10
+if __name__ == '__main__':
+    # Set the width, height, and scale parameters
+    width = 256
+    height = 256
+    scale = 10
 
-# Generate the Perlin noise
-noise = generate_perlin_noise(width, height, scale)
+    # Generate the Perlin noise
+    noise = generate_perlin_noise(width, height, scale)
 
-# Plot the Perlin noise
-plot_noise(noise, "Perlin noise example", cmap_given = "twilight")
+    # Plot the Perlin noise
+    plot_noise(noise, "Perlin noise example", cmap_given = "twilight")
