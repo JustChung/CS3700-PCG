@@ -124,11 +124,7 @@ if __name__ == '__main__':
 
     # Benchmark parallelization of noise gen
     import time
-<<<<<<< Updated upstream
-    for cpu in range(1, 17):  # Pool count of 1 to 4 processes
-=======
     for cpu in range(1, 11):  # Pool count of 1 to 4 processes
->>>>>>> Stashed changes
         start = time.time()
         # Generate Perlin noise with cpu count pool
         noise = generate_perlin_noise(width, height, scale, cpu)
